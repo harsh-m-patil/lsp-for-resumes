@@ -11,7 +11,7 @@ type HoverParams struct {
 
 type HoverResponse struct {
 	Response
-	Result HoverResult `json:"result,omitempty"`
+	Result HoverResult `json:"result"`
 }
 
 type HoverResult struct {
