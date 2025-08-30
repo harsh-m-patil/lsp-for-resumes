@@ -1,8 +1,9 @@
 package rpc_test
 
 import (
-	"lspfromscratch/rpc"
 	"testing"
+
+	"github.com/harsh-m-patil/ats-optimus-prime-lsp/rpc"
 )
 
 type EncodingExample struct {

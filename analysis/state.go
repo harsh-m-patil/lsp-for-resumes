@@ -2,8 +2,10 @@ package analysis
 
 import (
 	"fmt"
-	"lspfromscratch/lsp"
+	"regexp"
 	"strings"
+
+	"github.com/harsh-m-patil/ats-optimus-prime-lsp/lsp"
 )
 
 type State struct {
@@ -17,28 +19,118 @@ func NewState() State {
 	}
 }
 
+var verbs []string = []string{
+	"achieved", "analyzed", "built", "communicated", "created", "designed", "developed", "executed", "helped", "improved", "increased", "led", "managed", "monitored", "organized", "reduced", "researched", "resolved", "tested", "worked on",
+}
+
+func getSynonymsForActionVerb(verb string) []string {
+	actionSynonyms := map[string][]string{
+		"developed": {
+			"engineered",
+			"implemented",
+			"programmed",
+			"designed",
+			"created",
+		},
+		"built":     {"assembled", "constructed", "established", "produced", "devised"},
+		"created":   {"innovated", "initiated", "authored", "originated", "designed"},
+		"designed":  {"conceptualized", "crafted", "modeled", "planned", "drafted"},
+		"led":       {"directed", "oversaw", "coordinated", "supervised", "mentored"},
+		"managed":   {"orchestrated", "guided", "administered", "facilitated", "delegated"},
+		"worked on": {"collaborated on", "contributed to", "participated in", "executed", "supported"},
+		"helped":    {"assisted", "aided", "advised", "mentored", "supported"},
+		"communicated": {
+			"presented",
+			"articulated",
+			"conveyed",
+			"documented",
+			"reported",
+		},
+		"researched": {"investigated", "explored", "examined", "studied", "analyzed"},
+		"analyzed":   {"assessed", "evaluated", "interpreted", "measured", "reviewed"},
+		"tested":     {"validated", "verified", "benchmarked", "debugged", "inspected"},
+		"improved":   {"optimized", "refined", "enhanced", "streamlined", "modernized"},
+		"achieved":   {"accomplished", "delivered", "attained", "completed", "secured"},
+		"increased":  {"boosted", "expanded", "elevated", "amplified", "augmented"},
+		"reduced":    {"decreased", "cut", "minimized", "streamlined", "eliminated"},
+		"organized": {
+			"arranged",
+			"structured",
+			"scheduled",
+			"systematized",
+			"prioritized",
+		},
+		"executed":  {"implemented", "performed", "carried out", "fulfilled", "realized"},
+		"monitored": {"tracked", "observed", "supervised", "evaluated", "checked"},
+		"resolved":  {"fixed", "solved", "rectified", "addressed", "handled"},
+	}
+
+	return actionSynonyms[verb]
+}
+
+type FreqData struct {
+	count      int
+	ocurrences []OccurrenceData
+}
+
+type OccurrenceData struct {
+	line  int
+	start int
+	end   int
+}
+
 func getDiagnosticsForFile(text string) []lsp.Diagnostic {
 	diagnostics := []lsp.Diagnostic{}
+	freqMap := map[string]FreqData{}
+	re := regexp.MustCompile(`^\s*-[^0-9]*$`)
+
 	for row, line := range strings.Split(text, "\n") {
-		if strings.Contains(line, "VS Code") {
-			idx := strings.Index(line, "VS Code")
+		lower := strings.ToLower(line)
+		if re.MatchString(lower) {
 			diagnostics = append(diagnostics, lsp.Diagnostic{
-				Range:    LineRange(row, idx, idx+len("VS Code")),
-				Severity: 1,
-				Source:   "Common Sense",
-				Message:  "Please use a superior editor",
+				Range:    LineRange(row, 0, len(line)),
+				Severity: 2,
+				Source:   "Resume Tips",
+				Message:  "No impact",
 			})
 		}
-		if strings.Contains(line, "Neovim") {
-			idx := strings.Index(line, "Neovim")
-			diagnostics = append(diagnostics, lsp.Diagnostic{
-				Range:    LineRange(row, idx, idx+len("Neovim")),
-				Severity: 4,
-				Source:   "Common Sense",
-				Message:  "Great Choice :)",
-			})
+		for _, verb := range verbs {
+			idx := strings.Index(lower, verb)
+
+			if idx >= 0 {
+				data, exists := freqMap[verb]
+				if !exists {
+					data = FreqData{
+						count:      0,
+						ocurrences: []OccurrenceData{},
+					}
+				}
+
+				data.count += 1
+				data.ocurrences = append(data.ocurrences, OccurrenceData{
+					line:  row,
+					start: idx,
+					end:   idx + len(verb),
+				})
+
+				freqMap[verb] = data
+			}
 		}
 	}
+
+	for verb, data := range freqMap {
+		if data.count > 2 {
+			for _, occ := range data.ocurrences {
+				diagnostics = append(diagnostics, lsp.Diagnostic{
+					Range:    LineRange(occ.line, occ.start, occ.end),
+					Severity: 2,
+					Source:   "Resume Tips",
+					Message:  fmt.Sprintf("The verb '%s' is overused (%d times). Consider using synonyms.", verb, data.count),
+				})
+			}
+		}
+	}
+
 	return diagnostics
 }
 

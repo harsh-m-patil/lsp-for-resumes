@@ -5,14 +5,15 @@ import (
 	"encoding/json"
 	"io"
 	"log"
-	"lspfromscratch/analysis"
-	"lspfromscratch/lsp"
-	"lspfromscratch/rpc"
 	"os"
+
+	"github.com/harsh-m-patil/ats-optimus-prime-lsp/analysis"
+	"github.com/harsh-m-patil/ats-optimus-prime-lsp/lsp"
+	"github.com/harsh-m-patil/ats-optimus-prime-lsp/rpc"
 )
 
 func main() {
-	logger := getLogger("/home/harsh/repos/projects/lsp-go/log.txt")
+	logger := getLogger("/home/harsh/repos/projects/ats-optimus-prime-lsp/log.txt")
 	logger.Println("Lsp started")
 
 	scanner := bufio.NewScanner(os.Stdin)
